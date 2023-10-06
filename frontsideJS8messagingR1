@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UID Management</title>
+    <link rel="stylesheet" href="css.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="top-third">
+            
+            
+            <div class="left-section">        
+                <!-- Your existing content for the left section -->
+                <p class="status">JS8 Stat:</p><button onclick="connectToServer()">Connect to Server</button><p id="statusText">disconnected</p>
+                <p class="status">RT Stat:</p>
+                <p></p>
+                <div class="home-uid">
+                    HOME UID: <span id="displayed-home-uid"></span>
+                    <div>
+                        <input type="text" id="input-home-uid" placeholder="Enter Home UID" maxlength="3">
+                    </div>
+                    <button id="setUID">Set ID</button>
+                </div>
+                <input type="text" id="uidInput" placeholder="Enter UID" maxlength="3">
+                <div>
+                    <button id="submitBtn">Submit</button> 
+                    <button id="clearBtn">Clear List</button>
+                </div> 
+
+                <ul class="uid-list" id="uid-list"></ul>       
+                <table class="uid-table"" id="uid-table">
+                    <thead>
+                        <tr>
+                            <th>UID</th>
+                            <th style="text-align: center;">RX SNR</th>
+                            <th style="text-align: center;">DIRECT MESSAGE</th>
+                            <th style="text-align: center;">REMOVE</th>
+                        </tr>
+                    </thead>
+                    <div class="uid-table-container">
+                    <tbody></tbody>               
+                </table>                        
+            </div> 
+            <!--Middle Section--> 
+            <div class="middle-section">
+                <table class="uid-table" id="send-cot">                  
+                        <thead>
+                            <tr>
+                                <th style="text-align: center;">SEND COT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <label for="MOD">MOD:</label>
+                                    <select id="MOD" name="MOD" onchange="updatePreview()">
+                                        <option value="Enemy">Enemy</option>
+                                        <option value="Friendly">Friendly</option>                           
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <label for="longitude">Lattitude:</label>
+                                    <input type="text" id="lat" placeholder="input LAT" oninput="updatePreview()">
+                                    <label for="longitude">Longitude:</label>
+                                    <input type="text" id="lon" placeholder="input LON" oninput="updatePreview()">
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td>
+                                    <h3>Preview:</h3>
+                                    <p id="preview"></p>       
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <button id="Trigger">Trigger</button> 
+                                    <button id="Reset">Reset</button>
+                                </td>
+                            </tr>
+                        </tbody>                    
+                </table>
+            </div>
+
+            <div class="right-section">
+                <!-- Additional content for the right section -->
+                lets see what happens
+            </div>
+        </div>
+
+
+        <div id="output"></div>
+        <script>
+            fetch('http://localhost:8000')
+                .then(response => response.text())
+                .then(data => document.getElementById('output').textContent = data)
+                .catch(error => console.error('Error:', error));
+        </script>
+
+
+        <!--This script will connect to js8 and display connected or disconnected-->
+        <script>
+            let socket;
+    
+            function connectToServer() {
+                const statusText = document.getElementById('statusText');
+                socket = new WebSocket('ws://127.0.0.1:2442'); // WebSocket address
+    
+                socket.addEventListener('open', (event) => {
+                    // Connection opened, send a message
+                    socket.send('RX.ACTIVITY');
+                    statusText.textContent = 'Connected';
+                });
+    
+                // Listen for messages
+                socket.addEventListener('message', (event) => {
+                    console.log('Message from server:', event.data);
+                });
+    
+                // Listen for errors
+                socket.addEventListener('error', (event) => {
+                    console.error('Error:', event);
+                    statusText.textContent = 'Error';
+                });
+    
+                // Listen for the connection to close
+                socket.addEventListener('close', (event) => {
+                    console.log('Connection closed:', event);
+                    statusText.textContent = 'Disconnected';
+                });
+            }
+        </script>
+   
+        <script>
+            // Clear list function to reset and blank list 
+            function clearUidList(){
+                var uidTable = document.getElementById('uid-table');
+                uidTable.getElementsByTagName('tbody')[0].innerHTML = '';
+            }
+            
+            // Function to handle Direct Message button click
+            function directMessage(button) {
+                var row = button.parentNode.parentNode;
+                var uid = row.cells[0].textContent;
+                var messageInput = document.getElementById('uid-table-message-input');
+                messageInput.value = uid + ':';
+            }
+        
+            // Add uid to table function
+            function addUidToTable() {
+                var uidInput = document.getElementById('uidInput');
+                var uid = uidInput.value;
+        
+                if (uid !== '') {
+                    var table = document.getElementById('uid-table').getElementsByTagName('tbody')[0];
+                    var row = table.insertRow(table.rows.length);
+                    var cell1 = row.insertCell(0);
+                    var cell2 = row.insertCell(1);
+                    var cell3 = row.insertCell(2);
+                    var cell4 = row.insertCell(3);
+        
+                    cell1.innerHTML = uid;
+                    cell2.innerHTML = ''; // You can leave this blank for now
+                    cell3.innerHTML = '<button onclick="directMessage(this)">Direct Message</button>'; 
+                    cell4.innerHTML = '<button onclick="removeRow(this)">Remove</button>';
+                    
+                    // clear the input box
+                    uidInput.value = '';
+                }
+            }
+        
+            function removeRow(button) {
+                var row = button.parentNode.parentNode;
+                row.parentNode.removeChild(row);
+            }
+            document.getElementById('submitBtn').addEventListener('click', addUidToTable);
+            document.getElementById('clearBtn').addEventListener('click', clearUidList);
+            document.getElementById('uidInput').addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    addUidToTable();
+                }
+            });
+
+            
+
+            document.getElementById('uidInput').addEventListener('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+
+            document.getElementById('input-home-uid').addEventListener('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+            
+            document.getElementById('input-home-uid').addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    addUidToTable();
+                }
+            });
+        </script>
+
+        <!--This function will combine the message for mod+lat+lon and display example text-->
+        <script>
+            function updatePreview() {
+                var latitude = document.getElementById('lat').value;
+                var longitude = document.getElementById('lon').value;
+                var mod = document.getElementById('MOD').value;
+    
+                var previewText = latitude + ' ' + longitude + ' ' + mod[0];
+                document.getElementById('preview').textContent = previewText;
+            }
+        </script>
+        
+        
+
+        <script>
+            // Function to set the HOME UID
+            function setHomeUID() {
+                var inputElement = document.getElementById('input-home-uid');
+                var displayedElement = document.getElementById('displayed-home-uid');
+        
+                var newHomeUID = inputElement.value;
+        
+                if (newHomeUID) {
+                    displayedElement.textContent = newHomeUID;
+                    inputElement.value = ''; // Clear the input field
+                    // Store newHomeUID in a variable for later access
+                    var homeUID = newHomeUID;
+                }
+            }
+        
+            // Add event listener to the "Set ID" button
+            document.getElementById('setUID').addEventListener('click', setHomeUID);
+        </script>
+
+            
+                <table class="uid-table" id="uid-table">
+                    <thhead>
+                    <tr>
+                        <th style="text-align: center;">Send Message</th>
+                    </tr>
+                    <tr>
+                        <td colspan="3"> <!-- This input spans all three columns -->
+                            <input type="text" id="uid-table-message-input" placeholder="Enter Message">
+                            <button id="submitBtn">Submit</button>
+                        </td>
+                    </tr>
+                    </thhead>
+                </table>
+                <table class="uid-table" id="uid-table">
+                    <thhead>
+                    <tr>
+                        <th colspan="4" style="text-align: center;">RX Message Log</th>
+                    </tr>
+                    <tr>
+                        <th style="text-align: center;">UID</th>
+                        <th style="text-align: center;">Message</th>
+                        <th style="text-align: center;">SNR</th>
+                        <th style="text-align: center;">Time</th>
+                    </tr>
+                    </thhead>
+                </table>   
+            </div>
+        </div>
+</body>
+</html>
